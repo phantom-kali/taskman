@@ -3,87 +3,34 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
-
-#define MAX_TASK_LENGTH 256
-#define MAX_TASKS 100
-#define FILENAME "tasks.txt"
-#define TEMPFILE "tasks.tmp"
-
-typedef enum
-{
-    TODO = 0,
-    DONE = 1
-} Status;
-
-typedef struct
-{
-    int id;
-    char description[MAX_TASK_LENGTH];
-    Status completed;
-    time_t created;
-} Task;
-
-typedef struct
-{
-    Task tasks[MAX_TASKS];
-    int count;
-} TaskManager;
+#include "database.h"
 
 TaskManager tm = {0};
 
 void load_tasks()
 {
-    FILE *file = fopen(FILENAME, "r");
-    if (!file)
-    {
-        return;
+    if (db_load_tasks(&tm) != 0) {
+        fprintf(stderr, "Warning: Could not load tasks from database\n");
     }
-
-    while (tm.count < MAX_TASKS &&
-           fscanf(file, "%d|%d|%ld|%[^\n]",
-                  &tm.tasks[tm.count].id,
-                  (int *)&tm.tasks[tm.count].completed,
-                  &tm.tasks[tm.count].created,
-                  tm.tasks[tm.count].description) == 4)
-    {
-        tm.count++;
-    }
-    fclose(file);
 }
 
-void save_tasks()
+void save_task(Task *task)
 {
-    FILE *temp = fopen(TEMPFILE, "w");
-    if (!temp)
-    {
-        printf("Error: Cannot save tasks\n");
-        return;
+    if (db_save_task(task) != 0) {
+        fprintf(stderr, "Error: Cannot save task to database\n");
     }
+}
 
-    for (int i = 0; i < tm.count; i++)
-    {
-        fprintf(temp, "%d|%d|%ld|%s\n",
-                tm.tasks[i].id,
-                tm.tasks[i].completed,
-                tm.tasks[i].created,
-                tm.tasks[i].description);
+void update_task(Task *task)
+{
+    if (db_update_task(task) != 0) {
+        fprintf(stderr, "Error: Cannot update task in database\n");
     }
-    fclose(temp);
-    remove(FILENAME);
-    rename(TEMPFILE, FILENAME);
 }
 
 int get_next_id()
 {
-    int max_id = 0;
-    for (int i = 0; i < tm.count; i++)
-    {
-        if (tm.tasks[i].id > max_id)
-        {
-            max_id = tm.tasks[i].id;
-        }
-    }
-    return max_id + 1;
+    return db_get_next_id();
 }
 
 void add_task(const char *description)
@@ -100,16 +47,20 @@ void add_task(const char *description)
         return;
     }
 
-    Task *task = &tm.tasks[tm.count];
-    task->id = get_next_id();
-    strncpy(task->description, description, MAX_TASK_LENGTH - 1);
-    task->description[MAX_TASK_LENGTH - 1] = '\0';
-    task->completed = TODO;
-    task->created = time(NULL);
+    Task task;
+    task.id = get_next_id();
+    strncpy(task.description, description, MAX_TASK_LENGTH - 1);
+    task.description[MAX_TASK_LENGTH - 1] = '\0';
+    task.completed = TODO;
+    task.created = time(NULL);
 
+    save_task(&task);
+    
+    // Add to local cache
+    tm.tasks[tm.count] = task;
     tm.count++;
-    save_tasks();
-    printf("Task added: #%d - %s\n", task->id, task->description);
+    
+    printf("Task added: #%d - %s\n", task.id, task.description);
 }
 
 int cmp_created(const void *a, const void *b)
@@ -158,7 +109,7 @@ void complete_task(int id)
         if (tm.tasks[i].id == id)
         {
             tm.tasks[i].completed = DONE;
-            save_tasks();
+            update_task(&tm.tasks[i]);
             printf("Task #%d marked as completed!\n", id);
             return;
         }
@@ -180,12 +131,19 @@ void delete_task(int id)
                 printf("Cancelled.\n");
                 return;
             }
+            
+            // Delete from database
+            if (db_delete_task(id) != 0) {
+                printf("Error: Could not delete task from database.\n");
+                return;
+            }
+            
+            // Remove from local cache
             for (int j = i; j < tm.count - 1; j++)
             {
                 tm.tasks[j] = tm.tasks[j + 1];
             }
             tm.count--;
-            save_tasks();
             printf("Task #%d deleted.\n", id);
             return;
         }
@@ -201,7 +159,7 @@ void edit_task(int id, const char *new_description)
         {
             strncpy(tm.tasks[i].description, new_description, MAX_TASK_LENGTH - 1);
             tm.tasks[i].description[MAX_TASK_LENGTH - 1] = '\0';
-            save_tasks();
+            update_task(&tm.tasks[i]);
             printf("Task #%d updated.\n", id);
             return;
         }
@@ -225,11 +183,18 @@ void show_help()
 
 int main(int argc, char *argv[])
 {
+    // Initialize database
+    if (db_init() != 0) {
+        fprintf(stderr, "Error: Failed to initialize database\n");
+        return 1;
+    }
+
     load_tasks();
 
     if (argc < 2)
     {
         show_help();
+        db_close();
         return 1;
     }
 
@@ -238,6 +203,7 @@ int main(int argc, char *argv[])
         if (argc < 3)
         {
             printf("Error: Please provide task description\n");
+            db_close();
             return 1;
         }
         add_task(argv[2]);
@@ -255,6 +221,7 @@ int main(int argc, char *argv[])
         if (argc < 3)
         {
             printf("Error: Please provide task ID\n");
+            db_close();
             return 1;
         }
         complete_task(atoi(argv[2]));
@@ -264,6 +231,7 @@ int main(int argc, char *argv[])
         if (argc < 3)
         {
             printf("Error: Please provide task ID\n");
+            db_close();
             return 1;
         }
         delete_task(atoi(argv[2]));
@@ -273,6 +241,7 @@ int main(int argc, char *argv[])
         if (argc < 4)
         {
             printf("Usage: ./taskman edit <id> \"new description\"\n");
+            db_close();
             return 1;
         }
         edit_task(atoi(argv[2]), argv[3]);
@@ -285,8 +254,10 @@ int main(int argc, char *argv[])
     {
         printf("Unknown command: %s\n", argv[1]);
         show_help();
+        db_close();
         return 1;
     }
 
+    db_close();
     return 0;
 }
