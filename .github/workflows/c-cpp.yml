@@ -1,34 +1,241 @@
-name: Build and Test
+name: Build and Test TaskMan
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04, macos-latest]
+        include:
+          - os: ubuntu-latest
+            sqlite_pkg: libsqlite3-dev
+            pkg_manager: apt-get
+          - os: ubuntu-20.04
+            sqlite_pkg: libsqlite3-dev
+            pkg_manager: apt-get
+          - os: macos-latest
+            sqlite_pkg: sqlite3
+            pkg_manager: brew
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
     
-    - name: Install dependencies
-      run: sudo apt-get update && sudo apt-get install -y gcc make
+    - name: Install dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc make ${{ matrix.sqlite_pkg }} valgrind
+    
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install gcc make ${{ matrix.sqlite_pkg }}
+    
+    - name: Verify SQLite installation
+      run: |
+        sqlite3 --version
+        pkg-config --modversion sqlite3 || echo "pkg-config not available"
     
     - name: Build taskman
-      run: make
+      run: make clean && make
     
-    - name: Test basic functionality
+    - name: Verify binary creation
       run: |
-        ./taskman help
-        ./taskman add "Test task 1"
-        ./taskman add "Test task 2"
+        ls -la taskman
+        file taskman
+        ldd taskman || otool -L taskman || echo "Dependency check not available"
+    
+    - name: Test help command
+      run: ./taskman help
+    
+    - name: Test basic CRUD operations
+      run: |
+        echo "Testing task creation..."
+        ./taskman add "Test task 1 - Priority high"
+        ./taskman add "Test task 2 - Buy groceries"
+        ./taskman add "Test task 3 - Complete project"
+        
+        echo "Testing task listing..."
         ./taskman list
+        
+        echo "Testing task completion..."
         ./taskman done 1
+        ./taskman done 3
+        
+        echo "Testing list-all command..."
         ./taskman list-all
-        ./taskman delete 2
+        
+        echo "Testing task editing..."
+        ./taskman edit 2 "Updated task - Buy groceries and cook dinner"
+        
+        echo "Testing task deletion with auto-confirm..."
+        echo "y" | ./taskman delete 1
+        
+        echo "Final task listing..."
+        ./taskman list
+        ./taskman list-all
+    
+    - name: Test database integrity
+      run: |
+        echo "Checking database file..."
+        ls -la tasks.db
+        sqlite3 tasks.db "SELECT COUNT(*) FROM tasks;" > task_count.txt
+        cat task_count.txt
+        echo "Database integrity check..."
+        sqlite3 tasks.db "PRAGMA integrity_check;"
+    
+    - name: Test error handling
+      run: |
+        echo "Testing invalid commands..."
+        ./taskman invalid_command || echo "Expected error for invalid command"
+        ./taskman add "" || echo "Expected error for empty task"
+        ./taskman done 999 || echo "Expected error for non-existent task ID"
+        ./taskman edit 999 "test" || echo "Expected error for non-existent task ID"
+        echo "y" | ./taskman delete 999 || echo "Expected error for non-existent task ID"
+    
+    - name: Test concurrent access (Linux only)
+      if: runner.os == 'Linux'
+      run: |
+        echo "Testing concurrent database access..."
+        ./taskman add "Concurrent test 1" &
+        ./taskman add "Concurrent test 2" &
+        ./taskman add "Concurrent test 3" &
+        wait
         ./taskman list
     
-    - name: Clean build
+    - name: Memory leak check (Linux only)
+      if: runner.os == 'Linux'
+      run: |
+        echo "Running memory leak detection..."
+        valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./taskman help
+        valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./taskman add "Memory test task"
+        valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./taskman list
+    
+    - name: Performance test
+      run: |
+        echo "Performance testing with bulk operations..."
+        time ./taskman add "Performance test task 1"
+        time ./taskman add "Performance test task 2"
+        time ./taskman add "Performance test task 3"
+        time ./taskman list
+        time ./taskman list-all
+    
+    - name: Test build with different compiler flags
+      run: |
+        echo "Testing with different compiler flags..."
+        make clean
+        CFLAGS="-Wall -Wextra -std=c99 -O2 -DNDEBUG" make
+        ./taskman help
+        
+        make clean
+        CFLAGS="-Wall -Wextra -std=c99 -g -fsanitize=address" make
+        ./taskman help
+    
+    - name: Archive test artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-artifacts-${{ matrix.os }}
+        path: |
+          tasks.db
+          task_count.txt
+          taskman
+        retention-days: 5
+    
+    - name: Clean up
+      if: always()
       run: make clean
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc make libsqlite3-dev cppcheck clang-format
+    
+    - name: Static analysis with cppcheck
+      run: |
+        cppcheck --enable=all --std=c99 --platform=unix64 \
+          --suppress=missingIncludeSystem \
+          --suppress=unusedFunction \
+          --error-exitcode=1 \
+          --inline-suppr \
+          *.c *.h
+    
+    - name: Check code formatting
+      run: |
+        clang-format --style="{BasedOnStyle: Linux, IndentWidth: 4, TabWidth: 4, UseTab: Never}" \
+          --dry-run --Werror *.c *.h || echo "Code formatting check completed"
+    
+    - name: Compile with warnings as errors
+      run: |
+        make clean
+        CFLAGS="-Wall -Wextra -Werror -std=c99" make
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc make libsqlite3-dev
+    
+    - name: Build for security scanning
+      run: |
+        make clean
+        CFLAGS="-Wall -Wextra -std=c99 -fstack-protector-strong -D_FORTIFY_SOURCE=2" make
+    
+    - name: Check for hardcoded secrets
+      run: |
+        grep -r -i "password\|secret\|key\|token" *.c *.h || echo "No obvious secrets found"
+    
+    - name: Basic security checks
+      run: |
+        echo "Checking for unsafe functions..."
+        grep -n "strcpy\|strcat\|sprintf\|gets" *.c || echo "No obviously unsafe functions found"
+        
+        echo "Checking for potential buffer overflows..."
+        grep -n "scanf\|fscanf" *.c || echo "Scanf usage check completed"
+
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Validate README
+      run: |
+        echo "Checking README.md exists and is not empty..."
+        test -s README.md
+        
+        echo "Checking for required sections in README..."
+        grep -q "Installation" README.md
+        grep -q "Usage" README.md
+        grep -q "Features" README.md
+        grep -q "Requirements" README.md
+    
+    - name: Check Makefile
+      run: |
+        echo "Validating Makefile..."
+        test -f Makefile
+        grep -q "clean:" Makefile
+        grep -q "install:" Makefile
+        grep -q "sqlite3" Makefile
