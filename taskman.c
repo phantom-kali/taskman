@@ -36,12 +36,12 @@ void load_tasks()
     FILE *file = fopen(FILENAME, "r");
     if (!file)
     {
-        perror("Failed to open task file");
+        // File doesn't exist yet - this is normal for first run
         return;
     }
 
     while (tm.count < MAX_TASKS &&
-           fscanf(file, "%d|%d|%ld|%[^]\n",
+           fscanf(file, "%d|%d|%ld|%[^\n]",
                   &tm.tasks[tm.count].id,
                   (int *)&tm.tasks[tm.count].completed,
                   &tm.tasks[tm.count].created,
