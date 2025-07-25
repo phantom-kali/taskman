@@ -108,7 +108,6 @@ The `./taskman search` command provides a powerful interactive search experience
 - **Exit options**: Press ESC to exit, Ctrl+C to cancel
 - **Case-insensitive**: Search works regardless of letter case
 - **Partial matching**: Finds tasks containing your search terms anywhere in the description
-```
 
 ## Features
 
