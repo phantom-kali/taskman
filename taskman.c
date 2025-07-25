@@ -36,7 +36,6 @@ void load_tasks()
     FILE *file = fopen(FILENAME, "r");
     if (!file)
     {
-        // File doesn't exist yet - this is normal for first run
         return;
     }
 
