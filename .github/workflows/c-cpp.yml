@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Build and Test
 
 on:
   push:
@@ -8,16 +8,27 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
+    
+    - name: Install dependencies
+      run: sudo apt-get update && sudo apt-get install -y gcc make
+    
+    - name: Build taskman
       run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+    
+    - name: Test basic functionality
+      run: |
+        ./taskman help
+        ./taskman add "Test task 1"
+        ./taskman add "Test task 2"
+        ./taskman list
+        ./taskman done 1
+        ./taskman list-all
+        ./taskman delete 2
+        ./taskman list
+    
+    - name: Clean build
+      run: make clean
