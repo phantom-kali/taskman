@@ -4,6 +4,7 @@
 #include <time.h>
 #include <ctype.h>
 #include "database.h"
+#include "search.h"
 
 TaskManager tm = {0};
 
@@ -175,6 +176,7 @@ void show_help()
     printf("  ./taskman add \"Task description\"    - Add a new task\n");
     printf("  ./taskman list                         - List pending tasks\n");
     printf("  ./taskman list-all                     - List all tasks\n");
+    printf("  ./taskman search                       - Interactive search\n");
     printf("  ./taskman done <id>                    - Mark task as completed\n");
     printf("  ./taskman delete <id>                  - Delete a task\n");
     printf("  ./taskman edit <id> \"new description\" - Edit a task\n");
@@ -215,6 +217,10 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[1], "list-all") == 0)
     {
         list_tasks(1);
+    }
+    else if (strcmp(argv[1], "search") == 0)
+    {
+        interactive_search();
     }
     else if (strcmp(argv[1], "done") == 0)
     {

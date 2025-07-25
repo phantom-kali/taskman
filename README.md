@@ -46,6 +46,9 @@ make
 # List all tasks (including completed)
 ./taskman list-all
 
+# Interactive search (like Linux reverse search)
+./taskman search
+
 # Mark task as completed
 ./taskman done <id>
 
@@ -83,11 +86,34 @@ Task #2 updated.
 $ ./taskman delete 1
 Are you sure you want to delete task #1? (y/n): y
 Task #1 deleted.
+
+$ ./taskman search
+# Opens interactive search interface
+# Type to search, use ↑/↓ arrows to navigate
+# Press Enter to select a task for actions
+# Press ESC to exit search
+```
+
+## Interactive Search Features
+
+The `./taskman search` command provides a powerful interactive search experience:
+
+- **Real-time filtering**: Start typing to instantly filter tasks
+- **Navigation**: Use ↑/↓ arrow keys to navigate through search results
+- **Task actions**: Press Enter on a selected task to:
+  - Toggle completion status (TODO ↔ DONE)
+  - Edit task description
+  - Delete the task
+  - Return to search
+- **Exit options**: Press ESC to exit, Ctrl+C to cancel
+- **Case-insensitive**: Search works regardless of letter case
+- **Partial matching**: Finds tasks containing your search terms anywhere in the description
 ```
 
 ## Features
 
 - **SQLite Database Storage**: Reliable, ACID-compliant data storage with better concurrent access
+- **Interactive Search**: Real-time task filtering with Linux-style reverse search interface
 - Task completion tracking
 - Timestamps for task creation
 - Colored terminal output for status indicators
@@ -97,6 +123,8 @@ Task #1 deleted.
 - Clean command-line interface
 - Modular database layer for easy maintenance
 - Prepared statements for security against SQL injection
+- **Enhanced Navigation**: Arrow key navigation in search mode
+- **Quick Actions**: Perform task operations directly from search results
 - No external dependencies except SQLite
 
 ## Requirements

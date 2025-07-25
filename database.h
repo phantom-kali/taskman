@@ -34,5 +34,6 @@ int db_save_task(const Task *task);
 int db_update_task(const Task *task);
 int db_delete_task(int id);
 int db_get_next_id(void);
+int db_search_tasks(TaskManager *tm, const char *search_term);
 
 #endif // DATABASE_H

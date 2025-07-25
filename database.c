@@ -31,6 +31,9 @@ static const char *SELECT_ALL_TASKS_SQL =
 static const char *SELECT_MAX_ID_SQL = 
     "SELECT MAX(id) FROM tasks;";
 
+static const char *SEARCH_TASKS_SQL = 
+    "SELECT id, description, completed, created FROM tasks WHERE description LIKE ? ORDER BY created ASC;";
+
 int db_init(void)
 {
     int rc = sqlite3_open(DB_FILENAME, &db);
@@ -204,4 +207,48 @@ int db_get_next_id(void)
 
     sqlite3_finalize(stmt);
     return max_id + 1;
+}
+
+int db_search_tasks(TaskManager *tm, const char *search_term)
+{
+    if (!db || !tm || !search_term) {
+        return -1;
+    }
+
+    tm->count = 0;
+    
+    // Prepare search pattern with wildcards
+    char pattern[MAX_TASK_LENGTH + 2];
+    snprintf(pattern, sizeof(pattern), "%%%s%%", search_term);
+    
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, SEARCH_TASKS_SQL, -1, &stmt, NULL);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "Error: Cannot prepare search statement: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+
+    sqlite3_bind_text(stmt, 1, pattern, -1, SQLITE_STATIC);
+
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW && tm->count < MAX_TASKS) {
+        Task *task = &tm->tasks[tm->count];
+        
+        task->id = sqlite3_column_int(stmt, 0);
+        const char *desc = (const char *)sqlite3_column_text(stmt, 1);
+        strncpy(task->description, desc, MAX_TASK_LENGTH - 1);
+        task->description[MAX_TASK_LENGTH - 1] = '\0';
+        task->completed = (Status)sqlite3_column_int(stmt, 2);
+        task->created = (time_t)sqlite3_column_int64(stmt, 3);
+        
+        tm->count++;
+    }
+
+    sqlite3_finalize(stmt);
+    
+    if (rc != SQLITE_DONE && rc != SQLITE_ROW) {
+        fprintf(stderr, "Error: Cannot search tasks: %s\n", sqlite3_errmsg(db));
+        return -1;
+    }
+
+    return 0;
 }

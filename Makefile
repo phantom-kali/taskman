@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
 LDFLAGS = -lsqlite3
 TARGET = taskman
-SOURCES = taskman.c database.c
+SOURCES = taskman.c database.c search.c
 OBJECTS = $(SOURCES:.c=.o)
 
 $(TARGET): $(OBJECTS)
