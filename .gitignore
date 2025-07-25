@@ -1,1 +1,4 @@
 tasks.txt
+taskman
+*.o
+*.db
