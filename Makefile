@@ -1,13 +1,18 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99
+LDFLAGS = -lsqlite3
 TARGET = taskman
-SOURCE = taskman.c
+SOURCES = taskman.c database.c
+OBJECTS = $(SOURCES:.c=.o)
 
-$(TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
+$(TARGET): $(OBJECTS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(TARGET) tasks.txt
+	rm -f $(TARGET) $(OBJECTS) tasks.db tasks.txt
 
 install: $(TARGET)
 	cp $(TARGET) /usr/local/bin/

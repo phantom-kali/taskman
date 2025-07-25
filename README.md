@@ -1,6 +1,30 @@
 # TaskMan
 
-A lightweight command-line task manager written in C for organizing daily tasks.
+A lightweight command-line task manager written in C with SQLite storage for organizing daily tasks.
+
+## Requirements
+
+- GCC compiler
+- Make utility
+- SQLite3 development libraries
+
+### Installing SQLite3 development libraries
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install libsqlite3-dev
+```
+
+**CentOS/RHEL/Fedora:**
+```bash
+sudo yum install sqlite-devel  # CentOS/RHEL
+sudo dnf install sqlite-devel  # Fedora
+```
+
+**macOS:**
+```bash
+brew install sqlite3
+```
 
 ## Installation
 
@@ -63,7 +87,7 @@ Task #1 deleted.
 
 ## Features
 
-- Persistent task storage (with safe file writes using a temporary file)
+- **SQLite Database Storage**: Reliable, ACID-compliant data storage with better concurrent access
 - Task completion tracking
 - Timestamps for task creation
 - Colored terminal output for status indicators
@@ -71,12 +95,15 @@ Task #1 deleted.
 - Sorted listing by creation time
 - Confirmation prompt before task deletion
 - Clean command-line interface
-- No external dependencies
+- Modular database layer for easy maintenance
+- Prepared statements for security against SQL injection
+- No external dependencies except SQLite
 
 ## Requirements
 
 - GCC compiler
 - Make utility
+- SQLite3 development libraries
 
 ## Build
 
@@ -85,4 +112,4 @@ make clean  # Remove existing builds
 make        # Compile
 ```
 
-Tasks are stored in `tasks.txt` in the current directory.
+Tasks are stored in `tasks.db` SQLite database in the current directory.
