@@ -1,4 +1,4 @@
-# TaskMan
+# toTaskMan
 
 A lightweight command-line task manager written in C with SQLite storage for organizing daily tasks.
 
@@ -11,83 +11,121 @@ A lightweight command-line task manager written in C with SQLite storage for org
 ### Installing SQLite3 development libraries
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get install libsqlite3-dev
 ```
 
 **CentOS/RHEL/Fedora:**
+
 ```bash
 sudo yum install sqlite-devel  # CentOS/RHEL
 sudo dnf install sqlite-devel  # Fedora
 ```
 
 **macOS:**
+
 ```bash
 brew install sqlite3
 ```
 
 ## Installation
 
+### Quick Setup (Recommended)
+
+```bash
+git clone https://github.com/phantom-kali/taskman.git
+cd taskman
+./setup.sh
+```
+
+The setup script will:
+
+- Check for required dependencies
+- Build and install TaskMan system-wide
+- Set up bash completion
+- Configure the database location
+
+### Manual Installation
+
 ```bash
 git clone https://github.com/phantom-kali/taskman.git
 cd taskman
 make
+sudo make install
 ```
+
+### System Requirements
 
 ## Usage
 
 ```bash
 # Add a task
-./taskman add "Complete project documentation"
+taskman add "Complete project documentation"
 
 # List pending tasks
-./taskman list
+taskman list
 
 # List all tasks (including completed)
-./taskman list-all
+taskman list-all
 
 # Interactive search (like Linux reverse search)
-./taskman search
+taskman search
 
 # Mark task as completed
-./taskman done <id>
+taskman done <id>
 
 # Edit a task description
-./taskman edit <id> "New description"
+taskman edit <id> "New description"
 
 # Delete a task
-./taskman delete <id>
+taskman delete <id>
+
+# Show database location and statistics
+taskman status
 
 # Show help
-./taskman help
+taskman help
 ```
+
+## Database Location
+
+TaskMan stores all your tasks in `~/.taskman/tasks.db`. This means:
+
+- Your tasks are accessible from anywhere on your system
+- All tasks are stored in one central location
+- Your tasks persist across different working directories
 
 ## Example
 
 ```bash
-$ ./taskman add "Buy groceries"
+$ taskman add "Buy groceries"
 Task added: #1 - Buy groceries
 
-$ ./taskman add "Finish assignment"
+$ taskman add "Finish assignment"
 Task added: #2 - Finish assignment
 
-$ ./taskman list
+$ taskman list
 ID   Status   Created              Description
 ------------------------------------------------------------
 1    [TODO]   2024-07-25 14:30     Buy groceries
 2    [TODO]   2024-07-25 14:31     Finish assignment
 
-$ ./taskman done 1
+$ taskman done 1
 Task #1 marked as completed!
 
-$ ./taskman edit 2 "Finish math assignment"
+$ taskman edit 2 "Finish math assignment"
 Task #2 updated.
 
-$ ./taskman delete 1
-Are you sure you want to delete task #1? (y/n): y
-Task #1 deleted.
+$ taskman status
+TaskMan Status
+==============
+Database location: /home/user/.taskman/tasks.db
+Total tasks: 2
+Completed tasks: 1
+Pending tasks: 1
 
-$ ./taskman search
+$ taskman search
 # Opens interactive search interface
 # Type to search, use ↑/↓ arrows to navigate
 # Press Enter to select a task for actions
@@ -139,4 +177,4 @@ make clean  # Remove existing builds
 make        # Compile
 ```
 
-Tasks are stored in `tasks.db` SQLite database in the current directory.
+Tasks are stored in `~/.taskman/tasks.db` SQLite database, accessible from anywhere on your system.
