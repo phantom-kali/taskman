@@ -3,9 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <pwd.h>
 
 static sqlite3 *db = NULL;
-static const char *DB_FILENAME = "tasks.db";
+static char db_path[512] = {0};
 
 // SQL statements
 static const char *CREATE_TABLE_SQL = 
@@ -34,9 +37,36 @@ static const char *SELECT_MAX_ID_SQL =
 static const char *SEARCH_TASKS_SQL = 
     "SELECT id, description, completed, created FROM tasks WHERE description LIKE ? ORDER BY created ASC;";
 
+// Initialize database path
+static void init_db_path(void)
+{
+    if (strlen(db_path) > 0) {
+        return; // Already initialized
+    }
+    
+    const char *home_dir = getenv("HOME");
+    if (!home_dir) {
+        struct passwd *pw = getpwuid(getuid());
+        home_dir = pw ? pw->pw_dir : "/tmp";
+    }
+    
+    // Create ~/.taskman directory if it doesn't exist
+    char config_dir[512];
+    snprintf(config_dir, sizeof(config_dir), "%s/.taskman", home_dir);
+    
+    struct stat st;
+    if (stat(config_dir, &st) == -1) {
+        mkdir(config_dir, 0755);
+    }
+    
+    snprintf(db_path, sizeof(db_path), "%s/.taskman/tasks.db", home_dir);
+}
+
 int db_init(void)
 {
-    int rc = sqlite3_open(DB_FILENAME, &db);
+    init_db_path();
+    
+    int rc = sqlite3_open(db_path, &db);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "Error: Cannot open database: %s\n", sqlite3_errmsg(db));
         return -1;
@@ -251,4 +281,10 @@ int db_search_tasks(TaskManager *tm, const char *search_term)
     }
 
     return 0;
+}
+
+const char *db_get_path(void)
+{
+    init_db_path();
+    return db_path;
 }
