@@ -173,14 +173,36 @@ void show_help()
     printf("\nSimple Task Manager\n");
     printf("==================\n");
     printf("Usage:\n");
-    printf("  ./taskman add \"Task description\"    - Add a new task\n");
-    printf("  ./taskman list                         - List pending tasks\n");
-    printf("  ./taskman list-all                     - List all tasks\n");
-    printf("  ./taskman search                       - Interactive search\n");
-    printf("  ./taskman done <id>                    - Mark task as completed\n");
-    printf("  ./taskman delete <id>                  - Delete a task\n");
-    printf("  ./taskman edit <id> \"new description\" - Edit a task\n");
-    printf("  ./taskman help                         - Show this help\n\n");
+    printf("  taskman add \"Task description\"    - Add a new task\n");
+    printf("  taskman list                       - List pending tasks\n");
+    printf("  taskman list-all                   - List all tasks\n");
+    printf("  taskman search                     - Interactive search\n");
+    printf("  taskman done <id>                  - Mark task as completed\n");
+    printf("  taskman delete <id>                - Delete a task\n");
+    printf("  taskman edit <id> \"new description\" - Edit a task\n");
+    printf("  taskman status                     - Show database location and stats\n");
+    printf("  taskman help                       - Show this help\n\n");
+}
+
+void show_status()
+{
+    printf("\nTaskMan Status\n");
+    printf("==============\n");
+    printf("Database location: %s\n", db_get_path());
+    printf("Total tasks: %d\n", tm.count);
+    
+    int completed = 0, pending = 0;
+    for (int i = 0; i < tm.count; i++) {
+        if (tm.tasks[i].completed == DONE) {
+            completed++;
+        } else {
+            pending++;
+        }
+    }
+    
+    printf("Completed tasks: %d\n", completed);
+    printf("Pending tasks: %d\n", pending);
+    printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -255,6 +277,10 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[1], "help") == 0)
     {
         show_help();
+    }
+    else if (strcmp(argv[1], "status") == 0)
+    {
+        show_status();
     }
     else
     {
