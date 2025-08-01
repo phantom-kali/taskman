@@ -1,4 +1,4 @@
-# toTaskMan
+# TaskMan
 
 A lightweight command-line task manager written in C with SQLite storage for organizing daily tasks.
 
