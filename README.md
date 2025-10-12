@@ -10,10 +10,10 @@ A lightweight command-line task manager written in C with SQLite storage for org
 
 ### Installing SQLite3 development libraries
 
-**Ubuntu/Debian:**
+**Ubuntu/Debian/Termux:**
 
 ```bash
-sudo apt-get install libsqlite3-dev
+apt-get install libsqlite3-dev  # Use sudo on Ubuntu/Debian, not needed in Termux
 ```
 
 **CentOS/RHEL/Fedora:**
@@ -29,6 +29,12 @@ sudo dnf install sqlite-devel  # Fedora
 brew install sqlite3
 ```
 
+**Termux (Android):**
+
+```bash
+pkg install sqlite
+```
+
 ## Installation
 
 ### Quick Setup (Recommended)
@@ -42,7 +48,7 @@ cd taskman
 The setup script will:
 
 - Check for required dependencies
-- Build and install TaskMan system-wide
+- Build and install TaskMan to user space (no root required)
 - Set up bash completion
 - Configure the database location
 
@@ -52,10 +58,18 @@ The setup script will:
 git clone https://github.com/phantom-kali/taskman.git
 cd taskman
 make
-sudo make install
+make install  # No sudo required - installs to ~/.local/
+```
+
+**Note:** Make sure `~/.local/bin` is in your PATH. Add this to your `~/.bashrc` or `~/.profile`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### System Requirements
+
+TaskMan now supports sudoless installations in user space, making it compatible with environments where root access is unavailable (such as Termux on Android). The installation process uses `~/.local/` for binaries and configurations, requiring no administrative privileges.
 
 ## Usage
 

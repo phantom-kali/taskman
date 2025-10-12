@@ -32,33 +32,37 @@ echo "Building TaskMan..."
 make clean
 make
 
-# Install
-echo "Installing TaskMan..."
-sudo make install
+# Install (user-space, no sudo required)
+echo "Installing TaskMan to user space..."
+make install
 
 # Setup completion
 echo "Setting up bash completion..."
-COMPLETION_FILE="$HOME/.taskman-completion"
-cp taskman-completion.bash "$COMPLETION_FILE"
-
-# Add to user's bashrc if not already there
-if ! grep -q "source.*taskman-completion" "$HOME/.bashrc" 2>/dev/null; then
-    echo "# TaskMan bash completion" >> "$HOME/.bashrc"
-    echo "source $COMPLETION_FILE" >> "$HOME/.bashrc"
-    echo "Added bash completion to ~/.bashrc"
+COMPLETION_FILE="$HOME/.local/share/bash-completion/completions/taskman"
+# Completion is already installed by make install, just ensure bashrc sources it
+if ! grep -q "source.*bash_completion" "$HOME/.bashrc" 2>/dev/null; then
+    echo "# Enable bash completion" >> "$HOME/.bashrc"
+    echo "if [ -f /usr/share/bash-completion/bash_completion ]; then" >> "$HOME/.bashrc"
+    echo "    . /usr/share/bash-completion/bash_completion" >> "$HOME/.bashrc"
+    echo "elif [ -f /etc/bash_completion ]; then" >> "$HOME/.bashrc"
+    echo "    . /etc/bash_completion" >> "$HOME/.bashrc"
+    echo "fi" >> "$HOME/.bashrc"
+    echo "Added bash completion support to ~/.bashrc"
 fi
 
 echo ""
 echo "✅ TaskMan setup complete!"
 echo ""
 echo "What's been installed:"
-echo "• TaskMan binary: /usr/local/bin/taskman"
+echo "• TaskMan binary: $HOME/.local/bin/taskman"
 echo "• Database location: ~/.taskman/tasks.db"
-echo "• Bash completion: $COMPLETION_FILE"
+echo "• Bash completion: $HOME/.local/share/bash-completion/completions/taskman"
 echo ""
 echo "Next steps:"
-echo "1. Restart your shell or run: source ~/.bashrc"
-echo "2. Start using TaskMan: taskman add \"My first task\""
-echo "3. Run 'taskman help' for more commands"
+echo "1. Add $HOME/.local/bin to your PATH if not already:"
+echo "   export PATH=\"$HOME/.local/bin:\$PATH\""
+echo "2. Restart your shell or run: source ~/.bashrc"
+echo "3. Start using TaskMan: taskman add \"My first task\""
+echo "4. Run 'taskman help' for more commands"
 echo ""
 echo "Your tasks will be stored in ~/.taskman/ and accessible from anywhere!"
